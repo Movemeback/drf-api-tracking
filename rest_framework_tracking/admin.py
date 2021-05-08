@@ -28,9 +28,8 @@ class APIRequestLogAdmin(admin.ModelAdmin):
     list_filter = ("view_method", "status_code")
     search_fields = (
         "path",
-        "user__email",
+        "user",
     )
-    raw_id_fields = ("user",)
 
     if app_settings.ADMIN_LOG_READONLY:
         readonly_fields = (

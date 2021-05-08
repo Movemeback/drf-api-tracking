@@ -82,7 +82,7 @@ class BaseLoggingMixin(object):
                     "host": request.get_host(),
                     "method": request.method,
                     "query_params": self._clean_data(request.query_params.dict()),
-                    "user": self._get_user(request),
+                    "user": self._get_user_id(request),
                     "username_persistent": self._get_user(request).get_username()
                     if self._get_user(request)
                     else "Anonymous",
@@ -161,6 +161,13 @@ class BaseLoggingMixin(object):
         if user.is_anonymous:
             return None
         return user
+    
+    def _get_user_id(self, request):
+        """Get user id."""
+        user = request.user
+        if user.is_anonymous:
+            return None
+        return user.id
 
     def _get_response_ms(self):
         """
