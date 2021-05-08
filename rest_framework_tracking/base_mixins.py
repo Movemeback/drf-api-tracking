@@ -164,10 +164,9 @@ class BaseLoggingMixin(object):
     
     def _get_user_id(self, request):
         """Get user id."""
-        user = request.user
-        if user.is_anonymous:
+        if request.user.is_anonymous:
             return None
-        return user.id
+        return request.user_id
 
     def _get_response_ms(self):
         """
