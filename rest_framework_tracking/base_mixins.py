@@ -20,17 +20,16 @@ class BaseLoggingMixin(object):
     sensitive_fields = {}
 
     def __init__(self, *args, **kwargs):
-        assert isinstance(
-            self.CLEANED_SUBSTITUTE, str
-        ), "CLEANED_SUBSTITUTE must be a string."
+        assert isinstance(self.CLEANED_SUBSTITUTE, str), "CLEANED_SUBSTITUTE must be a string."
         super(BaseLoggingMixin, self).__init__(*args, **kwargs)
 
     def initial(self, request, *args, **kwargs):
         self.log = {"requested_at": now()}
-        if not getattr(self, "decode_request_body", app_settings.DECODE_REQUEST_BODY):
-            self.log["data"] = ""
-        else:
-            self.log["data"] = self._clean_data(request.body)
+        self.log["data"] = (
+            self._clean_data(request.body)
+            if getattr(self, "decode_request_body", app_settings.DECODE_REQUEST_BODY)
+            else ""
+        )
 
         super(BaseLoggingMixin, self).initial(request, *args, **kwargs)
 
@@ -51,14 +50,10 @@ class BaseLoggingMixin(object):
         return response
 
     def finalize_response(self, request, response, *args, **kwargs):
-        response = super(BaseLoggingMixin, self).finalize_response(
-            request, response, *args, **kwargs
-        )
+        response = super(BaseLoggingMixin, self).finalize_response(request, response, *args, **kwargs)
 
         # Ensure backward compatibility for those using _should_log hook
-        should_log = (
-            self._should_log if hasattr(self, "_should_log") else self.should_log
-        )
+        should_log = self._should_log if hasattr(self, "_should_log") else self.should_log
 
         if should_log(request, response):
             if (connection.settings_dict.get("ATOMIC_REQUESTS") and getattr(response, "exception", None) and connection.in_atomic_block):
@@ -73,6 +68,8 @@ class BaseLoggingMixin(object):
             else:
                 rendered_content = response.getvalue()
 
+            user = self._get_user(request)
+
             self.log.update(
                 {
                     "remote_addr": self._get_ip_address(request),
@@ -80,6 +77,7 @@ class BaseLoggingMixin(object):
                     "view_method": self._get_view_method(request),
                     "path": self._get_path(request),
                     "host": request.get_host(),
+                    "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                     "method": request.method,
                     "query_params": self._clean_data(request.query_params.dict()),
                     "user": self._get_user_id(request),
@@ -142,9 +140,7 @@ class BaseLoggingMixin(object):
         method = request.method.lower()
         try:
             attributes = getattr(self, method)
-            return (
-                type(attributes.__self__).__module__ + "." + type(attributes.__self__).__name__
-            )
+            return f"{type(attributes.__self__).__module__}.{type(attributes.__self__).__name__}"
 
         except AttributeError:
             return None
@@ -183,9 +179,7 @@ class BaseLoggingMixin(object):
         Method that should return a value that evaluated to True if the request should be logged.
         By default, check if the request method is in logging_methods.
         """
-        return (
-            self.logging_methods == "__all__" or request.method in self.logging_methods
-        )
+        return self.logging_methods == "__all__" or request.method in self.logging_methods
 
     def _clean_data(self, data):
         """
@@ -217,9 +211,7 @@ class BaseLoggingMixin(object):
 
             data = dict(data)
             if self.sensitive_fields:
-                SENSITIVE_FIELDS = SENSITIVE_FIELDS | {
-                    field.lower() for field in self.sensitive_fields
-                }
+                SENSITIVE_FIELDS = SENSITIVE_FIELDS | {field.lower() for field in self.sensitive_fields}
 
             for key, value in data.items():
                 try:

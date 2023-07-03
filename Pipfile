@@ -12,12 +12,15 @@ pytest-cov = ">=2.6"
 coveralls = "*"
 tox = "*"
 mock = "*"
+twine = "*"
+ruff = "*"
+pre-commit = "*"
 
 [packages]
 djangorestframework = ">=3.5"
 pytest-django = "*"
 django-environ = "*"
-django = ">=3.1.8"
+django = ">=3.2.15"
 six = ">=1.13.0"
 
 [requires]
