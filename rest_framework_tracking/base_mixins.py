@@ -80,8 +80,8 @@ class BaseLoggingMixin(object):
                     "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                     "method": request.method,
                     "query_params": self._clean_data(request.query_params.dict()),
-                    "user": self._get_user(request).id,
-                    "username_persistent": self._get_user(request).get_username() if self._get_user(request) else "Anonymous",
+                    "user": self._get_user_id(request),
+                    "username_persistent": self._get_username(request),
                     "response_ms": self._get_response_ms(),
                     "response": self._clean_data(rendered_content),
                     "status_code": response.status_code,
@@ -156,6 +156,16 @@ class BaseLoggingMixin(object):
             return None
         return user
 
+    def _get_username(self, request):
+        """Get username."""
+        user = request.user
+        if user.is_anonymous:
+            return "Anonymous"
+        elif user:
+            return user.get_username()
+        else:
+            return "Anonymous"
+    
     def _get_user_id(self, request):
         """Get user id."""
         user = request.user
